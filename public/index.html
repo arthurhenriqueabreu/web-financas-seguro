@@ -3,176 +3,293 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#14251f" />
-    <title>Raiz | Finanças em família</title>
+    <meta name="theme-color" content="#24251f" />
+    <title>Raiz — finanças da casa</title>
     <link rel="stylesheet" href="/style.css" />
     <script src="/app.js" defer></script>
   </head>
   <body>
-    <header class="topbar">
-      <div class="brand">
-        <span class="brand-icon">↗</span
-        ><span>raiz<span class="brand-dot">.</span></span>
-      </div>
-      <span class="top-tag">FINANÇAS EM FAMÍLIA</span
-      ><button id="logout" class="text-button" hidden>Sair da conta</button>
-    </header>
     <main>
-      <section id="auth" class="auth-layout">
-        <div class="auth-intro">
-          <div class="eyebrow">CONTROLE COM TRANQUILIDADE</div>
-          <h1>Seu dinheiro,<br /><em>mais claro.</em></h1>
-          <p>
-            Organize receitas, despesas e comprovantes em um espaço seguro para
-            toda a família.
-          </p>
-          <div class="intro-card">
-            <span class="intro-symbol">✳</span
-            ><span
-              >Uma visão simples para tomar decisões melhores, todos os
-              dias.</span
+      <section id="auth" class="auth-page">
+        <div class="auth-story">
+          <div class="auth-brand">
+            <span class="brand-mark" aria-hidden="true">r.</span
+            ><span>raiz</span>
+          </div>
+          <div class="auth-story-body">
+            <p class="overline">FINANÇAS DA CASA</p>
+            <h1>Deixe as contas<br />no papel. <em>Não na cabeça.</em></h1>
+            <p class="story-copy">
+              Um lugar para anotar o que entra, o que sai e dividir a
+              organização com a família.
+            </p>
+            <div
+              class="ledger-preview"
+              aria-label="Prévia ilustrativa do resumo financeiro"
             >
+              <div class="ledger-preview-head">
+                <span>VISÃO DO MÊS</span><span>EXEMPLO</span>
+              </div>
+              <div class="ledger-preview-main">
+                <span>Saldo da casa</span><strong>R$ 4.830,00</strong>
+              </div>
+              <div class="ledger-preview-row">
+                <span>Entradas</span><span>+ R$ 6.200,00</span>
+              </div>
+              <div class="ledger-preview-row">
+                <span>Saídas</span><span>− R$ 1.370,00</span>
+              </div>
+            </div>
           </div>
+          <p class="auth-foot">RAIZ / CONTROLE SIMPLES, DO SEU JEITO</p>
         </div>
-        <div class="auth-card">
-          <div class="auth-tabs">
-            <button id="login-tab" class="active" type="button">Entrar</button
-            ><button id="register-tab" type="button">Criar conta</button>
-          </div>
-          <h2 id="auth-title">Bem-vindo de volta</h2>
-          <p id="auth-subtitle" class="muted">
-            Acesse suas finanças com segurança.
-          </p>
-          <form id="auth-form">
-            <label id="name-field" hidden
-              >Seu nome<input
-                name="name"
-                autocomplete="name"
-                maxlength="80" /></label
-            ><label
-              >E-mail<input
-                name="email"
-                type="email"
-                autocomplete="email"
-                required
-                maxlength="254"
-                placeholder="voce@exemplo.com" /></label
-            ><label
-              >Senha<input
-                name="password"
-                type="password"
-                autocomplete="current-password"
-                required
-                minlength="12"
-                maxlength="128"
-                placeholder="Mínimo de 12 caracteres" /></label
-            ><button class="primary" id="auth-submit" type="submit">
-              Entrar na conta <span>→</span>
-            </button>
-          </form>
-          <p class="form-note">
-            Seus dados ficam protegidos por autenticação e acesso individual.
-          </p>
-        </div>
-      </section>
-      <section id="dashboard" hidden>
-        <div class="dash-heading">
-          <div>
-            <div class="eyebrow">PAINEL FINANCEIRO</div>
-            <h1>
-              Olá, <span id="user-name"></span><span class="brand-dot">.</span>
-            </h1>
-            <p class="muted">
-              Acompanhe o que entra, o que sai e o que vem pela frente.
+        <div class="auth-form-area">
+          <div class="auth-form-wrap">
+            <div class="auth-tabs" aria-label="Acesso à conta">
+              <button
+                id="login-tab"
+                class="active"
+                type="button"
+                aria-pressed="true"
+              >
+                Entrar
+              </button>
+              <button id="register-tab" type="button" aria-pressed="false">
+                Criar conta
+              </button>
+            </div>
+            <p class="section-index">01 / ACESSO</p>
+            <h2 id="auth-title">Acesse sua conta</h2>
+            <p id="auth-subtitle" class="muted">
+              Seus registros estão esperando por você.
+            </p>
+            <form id="auth-form">
+              <label id="name-field" hidden
+                >Nome completo<input
+                  name="name"
+                  autocomplete="name"
+                  maxlength="80"
+              /></label>
+              <label
+                >E-mail<input
+                  name="email"
+                  type="email"
+                  autocomplete="email"
+                  required
+                  maxlength="254"
+                  placeholder="voce@exemplo.com"
+              /></label>
+              <label
+                >Senha<input
+                  name="password"
+                  type="password"
+                  autocomplete="current-password"
+                  required
+                  minlength="12"
+                  maxlength="128"
+                  placeholder="Pelo menos 12 caracteres"
+              /></label>
+              <button class="primary" id="auth-submit" type="submit">
+                Entrar na conta <span aria-hidden="true">↗</span>
+              </button>
+            </form>
+            <p class="form-note">
+              Seus dados financeiros ficam disponíveis apenas para as contas
+              autorizadas da família.
             </p>
           </div>
-          <button id="new-entry" class="primary" type="button">
-            + Novo lançamento
-          </button>
         </div>
-        <div id="permission-note" class="notice" hidden></div>
-        <div id="summary" class="summary-grid">
-          <article class="stat dark">
-            <div class="stat-label">SALDO ATUAL <span>◉</span></div>
-            <strong id="balance">R$ 0,00</strong
-            ><small>Resultado de todos os lançamentos</small>
-          </article>
-          <article class="stat">
-            <div class="stat-label">RECEITAS <span class="green">↗</span></div>
-            <strong id="income">R$ 0,00</strong
-            ><small>Entradas registradas</small>
-          </article>
-          <article class="stat">
-            <div class="stat-label">DESPESAS <span class="orange">↘</span></div>
-            <strong id="expense">R$ 0,00</strong
-            ><small>Saídas registradas</small>
-          </article>
-        </div>
-        <div class="content-grid">
-          <section class="panel history">
-            <div class="panel-heading">
+      </section>
+
+      <section id="dashboard" class="app-shell" hidden>
+        <aside class="sidebar">
+          <div class="sidebar-brand">
+            <span class="brand-mark" aria-hidden="true">r.</span
+            ><span>raiz</span>
+          </div>
+          <p class="sidebar-label">SUA CONTA</p>
+          <nav class="sidebar-nav" aria-label="Navegação principal">
+            <button
+              type="button"
+              class="nav-item active"
+              data-view="overview"
+              aria-current="page"
+            >
+              <span class="nav-number">01</span> Visão geral
+            </button>
+            <button type="button" class="nav-item" data-view="categories">
+              <span class="nav-number">02</span> Categorias
+            </button>
+            <button
+              type="button"
+              class="nav-item"
+              data-view="family"
+              id="family-nav"
+            >
+              <span class="nav-number">03</span> Família
+            </button>
+          </nav>
+          <div class="sidebar-bottom">
+            <div class="sidebar-user">
+              <span class="user-monogram" id="user-monogram">R</span>
               <div>
-                <div class="eyebrow">MOVIMENTAÇÕES</div>
-                <h2>Histórico financeiro</h2>
+                <strong id="sidebar-name">Responsável</strong
+                ><small id="sidebar-role">Minha conta</small>
               </div>
-              <span id="row-count" class="count">0 registros</span>
             </div>
-            <div class="filters">
-              <label>Período<input id="month-filter" type="month" /></label
-              ><label
-                >Tipo<select id="type-filter">
-                  <option value="">Todos</option>
-                  <option value="income">Receitas</option>
-                  <option value="expense">Despesas</option>
-                </select></label
-              ><button id="clear-filters" class="light-button" type="button">
-                Limpar
+            <button id="logout" class="logout-button" type="button">
+              Sair da conta <span aria-hidden="true">↗</span>
+            </button>
+          </div>
+        </aside>
+        <div class="workspace">
+          <header class="workspace-top">
+            <span
+              >RAIZ <span class="slash">/</span>
+              <span id="current-view-name">VISÃO GERAL</span></span
+            ><span id="today-label"></span>
+          </header>
+
+          <section id="overview-view" class="view">
+            <div class="page-heading">
+              <div>
+                <p class="section-index">01 / RESUMO</p>
+                <h1>Visão geral<span class="period">.</span></h1>
+                <p class="muted">O retrato das contas da família.</p>
+              </div>
+              <button id="new-entry" class="primary action-new" type="button">
+                Novo lançamento <span aria-hidden="true">+</span>
               </button>
             </div>
-            <div id="transactions" class="transactions"></div>
+            <div id="permission-note" class="notice" hidden></div>
+            <section
+              id="summary"
+              class="balance-sheet"
+              aria-label="Resumo financeiro"
+            >
+              <div class="balance-main">
+                <div>
+                  <p class="overline">SALDO DISPONÍVEL</p>
+                  <strong id="balance">R$ 0,00</strong>
+                </div>
+                <div class="balance-decoration" aria-hidden="true">
+                  <span></span><span></span><span></span>
+                </div>
+              </div>
+              <div class="balance-detail">
+                <div>
+                  <span class="balance-indicator income"></span
+                  ><span>Entradas</span><strong id="income">R$ 0,00</strong>
+                </div>
+                <div>
+                  <span class="balance-indicator expense"></span
+                  ><span>Saídas</span><strong id="expense">R$ 0,00</strong>
+                </div>
+              </div>
+            </section>
+            <section class="history" id="history">
+              <div class="section-heading">
+                <div>
+                  <p class="section-index">02 / MOVIMENTAÇÕES</p>
+                  <h2>Histórico</h2>
+                </div>
+                <span id="row-count" class="row-count">0 registros</span>
+              </div>
+              <div class="filters">
+                <label>Período<input id="month-filter" type="month" /></label
+                ><label
+                  >Tipo<select id="type-filter">
+                    <option value="">Todas as movimentações</option>
+                    <option value="income">Entradas</option>
+                    <option value="expense">Saídas</option>
+                  </select></label
+                ><button id="clear-filters" class="text-action" type="button">
+                  Limpar filtros
+                </button>
+              </div>
+              <div class="table-head" aria-hidden="true">
+                <span>LANÇAMENTO</span><span>VALOR</span>
+              </div>
+              <div
+                id="transactions"
+                class="transactions"
+                aria-live="polite"
+              ></div>
+            </section>
           </section>
-          <aside class="side-column">
-            <section class="panel">
-              <div class="eyebrow">ORGANIZAÇÃO</div>
-              <h2>Categorias</h2>
-              <p class="muted small">
-                Classifique seus lançamentos para entender melhor seus gastos.
-              </p>
-              <div id="categories" class="category-list"></div>
-              <form id="category-form" class="mini-form" hidden>
-                <input
-                  name="name"
-                  maxlength="40"
-                  required
-                  placeholder="Nova categoria"
-                /><select name="type">
-                  <option value="expense">Despesa</option>
-                  <option value="income">Receita</option></select
-                ><button type="submit" class="light-button">Adicionar</button>
-              </form>
-            </section>
-            <section id="family-panel" class="panel" hidden>
-              <div class="eyebrow">ACESSO COMPARTILHADO</div>
-              <h2>Família</h2>
-              <p class="muted small">
-                Crie contas para seus filhos e escolha o que cada um pode
-                acessar.
-              </p>
-              <div id="children"></div>
-              <button id="add-child" class="light-button full" type="button">
-                + Adicionar filho
+
+          <section id="categories-view" class="view" hidden>
+            <div class="page-heading">
+              <div>
+                <p class="section-index">02 / ORGANIZAÇÃO</p>
+                <h1>Categorias<span class="period">.</span></h1>
+                <p class="muted">Dê nome às entradas e saídas da casa.</p>
+              </div>
+            </div>
+            <div class="section-heading category-heading">
+              <div>
+                <h2>Suas categorias</h2>
+                <p class="muted small">
+                  Use as categorias ao criar um lançamento.
+                </p>
+              </div>
+            </div>
+            <div class="table-head categories-head" aria-hidden="true">
+              <span>NOME</span><span>TIPO</span>
+            </div>
+            <div id="categories" class="category-list"></div>
+            <form id="category-form" class="category-form" hidden>
+              <h3>Adicionar categoria</h3>
+              <div class="category-fields">
+                <label
+                  >Nome<input
+                    name="name"
+                    maxlength="40"
+                    required
+                    placeholder="Ex.: Mercado" /></label
+                ><label
+                  >Tipo<select name="type">
+                    <option value="expense">Saída</option>
+                    <option value="income">Entrada</option>
+                  </select></label
+                ><button type="submit" class="secondary">Adicionar</button>
+              </div>
+            </form>
+          </section>
+
+          <section id="family-view" class="view" hidden>
+            <div class="page-heading">
+              <div>
+                <p class="section-index">03 / ACESSO</p>
+                <h1>Família<span class="period">.</span></h1>
+                <p class="muted">Decida o que cada filho pode ver e fazer.</p>
+              </div>
+              <button id="add-child" class="primary action-new" type="button">
+                Criar conta <span aria-hidden="true">+</span>
               </button>
+            </div>
+            <section id="family-panel">
+              <div class="section-heading">
+                <div>
+                  <h2>Contas dos filhos</h2>
+                  <p class="muted small">
+                    As permissões podem ser alteradas a qualquer momento.
+                  </p>
+                </div>
+              </div>
+              <div id="children" class="children-list"></div>
             </section>
-          </aside>
+          </section>
         </div>
       </section>
     </main>
+
     <dialog id="entry-dialog">
       <form id="entry-form" enctype="multipart/form-data">
         <div class="dialog-top">
           <div>
-            <div class="eyebrow">NOVO REGISTRO</div>
-            <h2>Adicionar lançamento</h2>
+            <p class="section-index">LANÇAMENTO</p>
+            <h2>Novo registro</h2>
           </div>
           <button
             class="close"
@@ -186,11 +303,11 @@
         <div class="choice">
           <label
             ><input type="radio" name="type" value="expense" checked /><span
-              >↘ Despesa</span
+              >Saída</span
             ></label
           ><label
             ><input type="radio" name="type" value="income" /><span
-              >↗ Receita</span
+              >Entrada</span
             ></label
           >
         </div>
@@ -203,7 +320,7 @@
         /></label>
         <div class="form-row">
           <label
-            >Valor (R$)<input
+            >Valor em reais<input
               name="amount"
               required
               inputmode="decimal"
@@ -212,18 +329,17 @@
         </div>
         <label>Categoria<select name="categoryId" required></select></label
         ><label
-          >Comprovante <span class="muted small">(opcional, até 5 MB)</span
+          >Comprovante <span class="muted small">opcional, até 5 MB</span
           ><input
             name="receipt"
             type="file"
             accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp"
         /></label>
         <p class="muted small">
-          PDF, PNG, JPEG ou WebP. O arquivo só pode ser acessado pela sua
-          família.
+          PDF, PNG, JPEG ou WebP. Somente sua família pode baixar o arquivo.
         </p>
         <button class="primary" type="submit">
-          Salvar lançamento <span>→</span>
+          Salvar lançamento <span aria-hidden="true">↗</span>
         </button>
       </form>
     </dialog>
@@ -231,8 +347,8 @@
       <form id="child-form">
         <div class="dialog-top">
           <div>
-            <div class="eyebrow">ACESSO FAMILIAR</div>
-            <h2>Criar conta de filho</h2>
+            <p class="section-index">ACESSO FAMILIAR</p>
+            <h2>Conta de filho</h2>
           </div>
           <button
             class="close"
@@ -259,7 +375,8 @@
             maxlength="128"
             autocomplete="new-password"
         /></label>
-        <div class="checks">
+        <fieldset class="checks">
+          <legend>Permissões</legend>
           <label
             ><input name="canView" type="checkbox" checked /> Ver saldo e
             histórico</label
@@ -267,9 +384,9 @@
             ><input name="canAdd" type="checkbox" checked /> Registrar
             lançamentos</label
           >
-        </div>
+        </fieldset>
         <button class="primary" type="submit">
-          Criar conta <span>→</span>
+          Criar conta <span aria-hidden="true">↗</span>
         </button>
       </form>
     </dialog>

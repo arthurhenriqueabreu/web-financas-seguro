@@ -41,18 +41,36 @@ function setAuthMode(mode) {
   state.authMode = mode;
   $("#login-tab").classList.toggle("active", mode === "login");
   $("#register-tab").classList.toggle("active", mode === "register");
+  $("#login-tab").setAttribute("aria-pressed", String(mode === "login"));
+  $("#register-tab").setAttribute("aria-pressed", String(mode === "register"));
   $("#name-field").hidden = mode === "login";
   $("#name-field input").required = mode === "register";
   $("#auth-title").textContent =
-    mode === "login" ? "Bem-vindo de volta" : "Comece sua jornada";
+    mode === "login" ? "Acesse sua conta" : "Crie sua conta";
   $("#auth-subtitle").textContent =
     mode === "login"
-      ? "Acesse suas finanças com segurança."
-      : "Crie sua conta para organizar a vida financeira da família.";
+      ? "Seus registros estão esperando por você."
+      : "Comece a organizar as contas da casa.";
   $("#auth-submit").firstChild.textContent =
     mode === "login" ? "Entrar na conta " : "Criar conta ";
   $("#auth-form [name=password]").autocomplete =
     mode === "login" ? "current-password" : "new-password";
+}
+function showView(view) {
+  for (const name of ["overview", "categories", "family"])
+    $(`#${name}-view`).hidden = name !== view;
+  document.querySelectorAll("[data-view]").forEach((button) => {
+    const active = button.dataset.view === view;
+    button.classList.toggle("active", active);
+    if (active) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
+  });
+  $("#current-view-name").textContent = {
+    overview: "VISÃO GERAL",
+    categories: "CATEGORIAS",
+    family: "FAMÍLIA",
+  }[view];
+  window.scrollTo({ top: 0, behavior: "auto" });
 }
 async function refresh() {
   const user = await api("/me");
@@ -60,17 +78,25 @@ async function refresh() {
   state.csrf = user.csrfToken;
   $("#auth").hidden = true;
   $("#dashboard").hidden = false;
-  $("#logout").hidden = false;
-  $("#user-name").textContent = user.name.split(" ")[0];
+  $("#sidebar-name").textContent = user.name;
+  $("#sidebar-role").textContent =
+    user.parentId === null ? "Responsável" : "Conta de filho";
+  $("#user-monogram").textContent = user.name.charAt(0).toUpperCase();
+  $("#today-label").textContent = new Intl.DateTimeFormat("pt-BR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
   $("#new-entry").hidden = !user.canAdd;
   $("#category-form").hidden = user.parentId !== null;
-  $("#family-panel").hidden = user.parentId !== null;
+  $("#family-nav").hidden = user.parentId !== null;
   $("#summary").hidden = !user.canView;
   $(".history").hidden = !user.canView;
   $("#permission-note").hidden = user.canView;
   $("#permission-note").textContent = user.canView
     ? ""
     : "O responsável desativou o acesso ao saldo e ao histórico para esta conta.";
+  showView("overview");
   await Promise.all([
     loadCategories(),
     user.canView ? loadTransactions() : Promise.resolve(),
@@ -81,8 +107,18 @@ async function loadCategories() {
   state.categories = await api("/categories");
   const list = $("#categories");
   list.replaceChildren();
-  for (const category of state.categories)
-    list.append(el("span", `category-pill ${category.type}`, category.name));
+  for (const category of state.categories) {
+    const row = el("div", "category-row");
+    row.append(
+      el("strong", "", category.name),
+      el(
+        "span",
+        `category-type ${category.type}`,
+        category.type === "income" ? "Entrada" : "Saída",
+      ),
+    );
+    list.append(row);
+  }
   if (state.categories.length === 0)
     list.append(el("p", "muted small", "Nenhuma categoria."));
   updateCategoryOptions();
@@ -98,16 +134,30 @@ function updateCategoryOptions() {
   }
 }
 async function loadTransactions() {
+  const list = $("#transactions");
+  list.replaceChildren(el("div", "empty", "Carregando movimentações…"));
   const params = new URLSearchParams();
   if ($("#month-filter").value) params.set("month", $("#month-filter").value);
   if ($("#type-filter").value) params.set("type", $("#type-filter").value);
-  const data = await api(`/transactions?${params}`);
+  let data;
+  try {
+    data = await api(`/transactions?${params}`);
+  } catch (error) {
+    const box = el("div", "empty");
+    const retry = el("button", "text-action", "Tentar novamente");
+    retry.type = "button";
+    retry.addEventListener("click", () =>
+      loadTransactions().catch((nextError) => toast(nextError.message)),
+    );
+    box.append(el("b", "", "Não foi possível carregar o histórico"), retry);
+    list.replaceChildren(box);
+    throw error;
+  }
   $("#balance").textContent = money(data.summary.balance);
   $("#income").textContent = money(data.summary.income);
   $("#expense").textContent = money(data.summary.expense);
   $("#row-count").textContent =
     `${data.rows.length} registro${data.rows.length === 1 ? "" : "s"}`;
-  const list = $("#transactions");
   list.replaceChildren();
   if (!data.rows.length) {
     const box = el("div", "empty");
@@ -174,7 +224,9 @@ async function loadChildren() {
   list.replaceChildren();
   for (const child of children) {
     const row = el("div", "child-row");
-    row.append(el("strong", "", child.name), el("small", "", child.email));
+    const identity = el("div", "child-identity");
+    identity.append(el("strong", "", child.name), el("small", "", child.email));
+    row.append(identity);
     for (const [key, title] of [
       ["can_view", "Ver saldo e histórico"],
       ["can_add", "Registrar lançamentos"],
@@ -209,6 +261,11 @@ async function loadChildren() {
 }
 $("#login-tab").addEventListener("click", () => setAuthMode("login"));
 $("#register-tab").addEventListener("click", () => setAuthMode("register"));
+document
+  .querySelectorAll("[data-view]")
+  .forEach((button) =>
+    button.addEventListener("click", () => showView(button.dataset.view)),
+  );
 $("#auth-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -241,7 +298,7 @@ $("#logout").addEventListener("click", async () => {
     state.csrf = null;
     $("#dashboard").hidden = true;
     $("#auth").hidden = false;
-    $("#logout").hidden = true;
+    setAuthMode("login");
     toast("Você saiu da conta.");
   } catch (error) {
     toast(error.message);
@@ -285,7 +342,7 @@ $("#entry-form").addEventListener("submit", async (event) => {
     if (!data.get("receipt")?.size) data.delete("receipt");
     await api("/transactions", { method: "POST", body: data });
     $("#entry-dialog").close();
-    await loadTransactions();
+    if (state.user.canView) await loadTransactions();
     toast("Lançamento salvo.");
   } catch (error) {
     toast(error.message);
