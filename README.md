@@ -31,7 +31,7 @@ Para desenvolvimento, use `npm run dev`. Para executar os testes, use `npm test`
 - Receitas e despesas com data, descrição, categoria e valor em centavos.
 - Saldo total, resumo de entradas e saídas, histórico com filtro por mês e tipo.
 - Categorias iniciais e criação de novas categorias pelo responsável.
-- Comprovantes em PDF, PNG, JPEG ou WebP de até 5 MB, disponíveis somente para usuários autorizados da família.
+- Comprovantes PDF, PNG, JPEG ou WebP de até 5 MB, disponíveis somente para usuários autorizados da família.
 - Contas de filhos com permissões independentes para consultar o histórico e adicionar lançamentos. Só o responsável gerencia permissões e exclui lançamentos.
 
 ## Segurança aplicada
