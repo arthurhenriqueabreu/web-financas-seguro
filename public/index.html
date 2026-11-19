@@ -187,6 +187,15 @@
                 </div>
               </div>
             </section>
+            <section id="by-category-section" class="history" hidden>
+              <div class="section-heading">
+                <div>
+                  <p class="section-index">02 / CATEGORIAS</p>
+                  <h2>Total por categoria</h2>
+                </div>
+              </div>
+              <div id="by-category" class="category-list"></div>
+            </section>
             <section class="history" id="history">
               <div class="section-heading">
                 <div>
@@ -202,6 +211,10 @@
                     <option value="">Todas as movimentações</option>
                     <option value="income">Entradas</option>
                     <option value="expense">Saídas</option>
+                  </select></label
+                ><label
+                  >Categoria<select id="category-filter">
+                    <option value="">Todas as categorias</option>
                   </select></label
                 ><button id="clear-filters" class="text-action" type="button">
                   Limpar filtros

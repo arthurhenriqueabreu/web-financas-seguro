@@ -13,7 +13,6 @@ if (process.env.TRUST_PROXY === "1") app.set("trust proxy", 1);
 app.disable("x-powered-by");
 app.use(
   helmet({
-    strictTransportSecurity: production,
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -23,7 +22,6 @@ app.use(
         objectSrc: ["'none'"],
         baseUri: ["'none'"],
         formAction: ["'self'"],
-        upgradeInsecureRequests: production ? [] : null,
       },
     },
   }),
@@ -128,6 +126,25 @@ app.use("/api", (req, res, next) => {
   next();
 });
 
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 600,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Muitas requisições. Aguarde alguns minutos." },
+});
+app.use("/api", apiLimiter);
+
+// Hash falso para igualar o tempo de resposta quando o e-mail não existe.
+const dummyHash = bcrypt.hashSync(randomBytes(16).toString("hex"), 12);
+
+// Remove sessões expiradas (na inicialização e a cada hora).
+function purgeSessions() {
+  db.prepare("DELETE FROM sessions WHERE expires_at < ?").run(Date.now());
+}
+purgeSessions();
+setInterval(purgeSessions, 60 * 60 * 1000).unref();
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 15,
@@ -158,6 +175,11 @@ app.post("/api/register", authLimiter, (req, res) => {
     .prepare("INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)")
     .run(name, email, bcrypt.hashSync(password, 12));
   seedCategories(result.lastInsertRowid);
+  const oldSession = readCookie(req);
+  if (oldSession)
+    db.prepare("DELETE FROM sessions WHERE token_hash = ?").run(
+      hash(oldSession),
+    );
   const csrfToken = createSession(res, result.lastInsertRowid);
   res.status(201).json({ csrfToken });
 });
@@ -169,11 +191,11 @@ app.post("/api/login", authLimiter, (req, res) => {
         .prepare("SELECT id, password_hash FROM users WHERE email = ?")
         .get(email)
     : null;
-  if (
-    !user ||
-    typeof password !== "string" ||
-    !bcrypt.compareSync(password, user.password_hash)
-  )
+  const passwordOk =
+    typeof password === "string" &&
+    password.length <= 128 &&
+    bcrypt.compareSync(password, user ? user.password_hash : dummyHash);
+  if (!user || !passwordOk)
     return fail(res, 401, "Credenciais inválidas.");
   const old = readCookie(req);
   if (old)
@@ -231,6 +253,10 @@ app.post("/api/categories", authenticate, csrf, parentOnly, (req, res) => {
 app.get("/api/transactions", authenticate, canView, (req, res) => {
   const type = req.query.type;
   const month = req.query.month;
+  const categoryId =
+    req.query.categoryId === undefined ? null : Number(req.query.categoryId);
+  if (categoryId !== null && !Number.isSafeInteger(categoryId))
+    return fail(res, 400, "Filtro inválido.");
   if (type && !["income", "expense"].includes(type))
     return fail(res, 400, "Filtro inválido.");
   if (month && !/^\d{4}-(0[1-9]|1[0-2])$/.test(month))
@@ -244,6 +270,10 @@ app.get("/api/transactions", authenticate, canView, (req, res) => {
   if (month) {
     where.push("substr(t.occurred_on, 1, 7) = ?");
     args.push(month);
+  }
+  if (categoryId !== null) {
+    where.push("t.category_id = ?");
+    args.push(categoryId);
   }
   const rows = db
     .prepare(
@@ -262,8 +292,18 @@ app.get("/api/transactions", authenticate, canView, (req, res) => {
     FROM transactions WHERE owner_id = ?`,
     )
     .get(ownerId(req.user));
+  // Total por categoria, respeitando os mesmos filtros do histórico.
+  const byCategory = db
+    .prepare(
+      `SELECT c.name AS category, t.type, SUM(t.amount_cents) AS total
+    FROM transactions t JOIN categories c ON c.id = t.category_id
+    WHERE ${where.join(" AND ")} GROUP BY t.category_id, t.type
+    ORDER BY total DESC`,
+    )
+    .all(...args);
   res.json({
     rows,
+    byCategory,
     summary: { ...summary, balance: summary.income - summary.expense },
   });
 });
@@ -451,6 +491,56 @@ app.patch("/api/children/:id", authenticate, csrf, parentOnly, (req, res) => {
     .run(Number(req.body.canView), Number(req.body.canAdd), id, req.user.id);
   if (!result.changes) return fail(res, 404, "Conta não encontrada.");
   res.json({ ok: true });
+});
+
+app.post(
+  "/api/children/:id/password",
+  authenticate,
+  csrf,
+  parentOnly,
+  (req, res) => {
+    const id = Number(req.params.id);
+    const password = req.body.password;
+    if (
+      !Number.isSafeInteger(id) ||
+      typeof password !== "string" ||
+      password.length < 12 ||
+      password.length > 128
+    )
+      return fail(res, 400, "A senha deve ter de 12 a 128 caracteres.");
+    const result = db
+      .prepare("UPDATE users SET password_hash = ? WHERE id = ? AND parent_id = ?")
+      .run(bcrypt.hashSync(password, 12), id, req.user.id);
+    if (!result.changes) return fail(res, 404, "Conta não encontrada.");
+    // Encerra as sessões ativas do filho após a troca de senha.
+    db.prepare("DELETE FROM sessions WHERE user_id = ?").run(id);
+    res.json({ ok: true });
+  },
+);
+app.delete("/api/children/:id", authenticate, csrf, parentOnly, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id)) return fail(res, 404, "Conta não encontrada.");
+  const child = db
+    .prepare("SELECT id FROM users WHERE id = ? AND parent_id = ?")
+    .get(id, req.user.id);
+  if (!child) return fail(res, 404, "Conta não encontrada.");
+  db.exec("BEGIN");
+  try {
+    // Os lançamentos pertencem à família: passam a constar como do responsável.
+    db.prepare("UPDATE transactions SET created_by = ? WHERE created_by = ?").run(
+      req.user.id,
+      id,
+    );
+    db.prepare("DELETE FROM users WHERE id = ? AND parent_id = ?").run(
+      id,
+      req.user.id,
+    );
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+  res.status(204).end();
 });
 
 app.use("/api", (req, res) => fail(res, 404, "Rota não encontrada."));

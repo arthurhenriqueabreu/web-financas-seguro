@@ -105,6 +105,20 @@ async function refresh() {
 }
 async function loadCategories() {
   state.categories = await api("/categories");
+  const filter = $("#category-filter");
+  const selected = filter.value;
+  filter.replaceChildren(el("option", "", "Todas as categorias"));
+  filter.firstChild.value = "";
+  for (const category of state.categories) {
+    const option = el(
+      "option",
+      "",
+      `${category.name} (${category.type === "income" ? "entrada" : "saída"})`,
+    );
+    option.value = category.id;
+    filter.append(option);
+  }
+  filter.value = selected;
   const list = $("#categories");
   list.replaceChildren();
   for (const category of state.categories) {
@@ -139,6 +153,8 @@ async function loadTransactions() {
   const params = new URLSearchParams();
   if ($("#month-filter").value) params.set("month", $("#month-filter").value);
   if ($("#type-filter").value) params.set("type", $("#type-filter").value);
+  if ($("#category-filter").value)
+    params.set("categoryId", $("#category-filter").value);
   let data;
   try {
     data = await api(`/transactions?${params}`);
@@ -158,6 +174,21 @@ async function loadTransactions() {
   $("#expense").textContent = money(data.summary.expense);
   $("#row-count").textContent =
     `${data.rows.length} registro${data.rows.length === 1 ? "" : "s"}`;
+  const totals = $("#by-category");
+  totals.replaceChildren();
+  for (const item of data.byCategory) {
+    const row = el("div", "category-row");
+    row.append(
+      el("strong", "", item.category),
+      el(
+        "span",
+        `category-type ${item.type}`,
+        `${item.type === "income" ? "+" : "−"} ${money(item.total)}`,
+      ),
+    );
+    totals.append(row);
+  }
+  $("#by-category-section").hidden = !data.byCategory.length;
   list.replaceChildren();
   if (!data.rows.length) {
     const box = el("div", "empty");
@@ -254,6 +285,36 @@ async function loadChildren() {
         }
       });
     }
+    const actions = el("div", "tx-actions");
+    const reset = el("button", "", "Nova senha");
+    reset.type = "button";
+    reset.addEventListener("click", async () => {
+      const password = prompt("Nova senha (12 a 128 caracteres):");
+      if (!password) return;
+      try {
+        await api(`/children/${child.id}/password`, {
+          method: "POST",
+          body: JSON.stringify({ password }),
+        });
+        toast("Senha atualizada.");
+      } catch (error) {
+        toast(error.message);
+      }
+    });
+    const remove = el("button", "", "Remover conta");
+    remove.type = "button";
+    remove.addEventListener("click", async () => {
+      if (!confirm(`Remover a conta de ${child.name}?`)) return;
+      try {
+        await api(`/children/${child.id}`, { method: "DELETE" });
+        await loadChildren();
+        toast("Conta removida.");
+      } catch (error) {
+        toast(error.message);
+      }
+    });
+    actions.append(reset, remove);
+    row.append(actions);
     list.append(row);
   }
   if (!children.length)
@@ -387,12 +448,16 @@ $("#category-form").addEventListener("submit", async (event) => {
 $("#month-filter").addEventListener("change", () =>
   loadTransactions().catch((error) => toast(error.message)),
 );
+$("#category-filter").addEventListener("change", () =>
+  loadTransactions().catch((error) => toast(error.message)),
+);
 $("#type-filter").addEventListener("change", () =>
   loadTransactions().catch((error) => toast(error.message)),
 );
 $("#clear-filters").addEventListener("click", () => {
   $("#month-filter").value = "";
   $("#type-filter").value = "";
+  $("#category-filter").value = "";
   loadTransactions().catch((error) => toast(error.message));
 });
 refresh().catch(() => {

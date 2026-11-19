@@ -1,70 +1,101 @@
 # Raiz — finanças em família
 
-Aplicação web de controle de finanças pessoais desenvolvida para a disciplina de Codificação Segura. O responsável cria sua conta, registra receitas e despesas, anexa comprovantes e acompanha saldo e histórico. Ele também pode criar contas de filhos e decidir, individualmente, se cada conta pode visualizar o histórico e registrar lançamentos. Todos os lançamentos pertencem à mesma família, mas cada família fica isolada das demais.
+Aplicação web de controle de finanças pessoais, desenvolvida para a disciplina de Codificação Segura. O responsável cria a conta, registra receitas e despesas, anexa comprovantes e acompanha saldo e histórico. Ele também pode criar contas de filhos e decidir, individualmente, se cada conta pode ver o histórico e registrar lançamentos. Os lançamentos pertencem à família, e cada família fica isolada das demais.
 
 ## Tecnologias
 
-- Node.js 22+ (recomendado: 24), Express 5 e JavaScript sem framework no navegador.
-- SQLite pelo módulo nativo `node:sqlite` (em Node 24, pode aparecer um aviso de recurso experimental).
-- `bcryptjs` para hash de senha, `multer` para upload, `helmet` para cabeçalhos HTTP e `express-rate-limit` para limitar tentativas de autenticação.
-- Testes HTTP com o executor nativo `node:test`.
+- **Back-end:** Node.js 22.13+ (recomendado: 24) e Express 5.
+- **Banco de dados:** SQLite pelo módulo nativo `node:sqlite` (em Node 22 e 24 aparece um aviso de recurso experimental, que é normal).
+- **Front-end:** HTML, CSS e JavaScript puro, sem framework.
+- **Bibliotecas:** `bcryptjs` (hash de senha), `multer` (upload), `helmet` (cabeçalhos HTTP e CSP) e `express-rate-limit` (limite de requisições).
+- **Testes:** executor nativo `node:test`.
 
-## Rodar localmente
+## Como rodar localmente
 
-1. Instale [Node.js](https://nodejs.org/) 22 ou superior.
-2. No diretório do projeto, execute:
+1. Instale o [Node.js](https://nodejs.org/) 22.13 ou superior.
+2. Na pasta do projeto, execute:
 
    ```bash
    npm ci
    npm start
    ```
 
-3. Abra `http://localhost:3000`, clique em **Criar conta** e cadastre o responsável. A senha deve ter entre 12 e 128 caracteres.
+3. Abra `http://localhost:3000`, clique em **Criar conta** e cadastre o responsável (senha de 12 a 128 caracteres).
 
-O banco é criado automaticamente em `data/financas.sqlite`. Essa pasta está no `.gitignore` e não deve ser publicada. Para mudar a porta ou o caminho do banco, defina `PORT` ou `DB_PATH` no ambiente. O arquivo `.env.example` documenta as opções; esta aplicação não carrega `.env` automaticamente.
+O banco é criado automaticamente em `data/financas.sqlite`. Essa pasta está no `.gitignore` e não deve ser publicada.
 
-Para desenvolvimento, use `npm run dev`. Para executar os testes, use `npm test`.
+Outros comandos:
+
+| Comando | O que faz |
+| --- | --- |
+| `npm run dev` | Inicia o servidor reiniciando a cada alteração |
+| `npm test` | Executa os testes automatizados |
+| `npm audit --omit=dev` | Procura vulnerabilidades conhecidas nas dependências |
+
+Variáveis de ambiente (veja `.env.example`; a aplicação **não** carrega o arquivo `.env` sozinha, defina-as no terminal):
+
+| Variável | Padrão | Descrição |
+| --- | --- | --- |
+| `PORT` | `3000` | Porta do servidor |
+| `DB_PATH` | `data/financas.sqlite` | Caminho do arquivo do banco |
+| `NODE_ENV` | — | Use `production` em produção (ativa cookie `Secure` e prefixo `__Host-`) |
+| `TRUST_PROXY` | `0` | Use `1` apenas atrás de um proxy confiável |
+
+Exemplo: `PORT=8080 npm start`.
 
 ## Funcionalidades
 
-- Cadastro, login e saída de usuários.
-- Receitas e despesas com data, descrição, categoria e valor em centavos.
-- Saldo total, resumo de entradas e saídas, histórico com filtro por mês e tipo.
+- Cadastro, login e logout.
+- Receitas e despesas com data, descrição, categoria e valor (armazenado em centavos).
+- Saldo total, entradas, saídas e **total por categoria**.
+- Histórico com filtros por mês, tipo e categoria.
 - Categorias iniciais e criação de novas categorias pelo responsável.
-- Comprovantes PDF, PNG, JPEG ou WebP de até 5 MB, disponíveis somente para usuários autorizados da família.
-- Contas de filhos com permissões independentes para consultar o histórico e adicionar lançamentos. Só o responsável gerencia permissões e exclui lançamentos.
+- Comprovante (cupom fiscal) em PDF, PNG, JPEG ou WebP de até 5 MB, acessível só por usuários autorizados da família.
+- **Controle parental:** o responsável cria contas de filhos e define, para cada uma, as permissões "ver saldo e histórico" e "registrar lançamentos". Também pode redefinir a senha de um filho (as sessões dele são encerradas), remover a conta (os lançamentos permanecem na família) e excluir lançamentos. Filhos não gerenciam contas, categorias nem permissões.
 
-## Segurança aplicada
+## Segurança
 
-| Risco                                   | Medida no projeto                                                                                                                                                                                                                   |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SQL Injection / SQL montado com entrada | Todas as entradas de usuário chegam ao SQLite por parâmetros `?` em consultas preparadas. Os únicos trechos SQL montados dinamicamente no filtro vêm de condições fixas no código, após validação.                                  |
-| XSS                                     | A interface insere dados do usuário com `textContent` e criação de nós DOM, sem interpretar HTML. `helmet` envia CSP com scripts, estilos e imagens restritos à própria origem e bloqueia `object-src`.                             |
-| CSRF                                    | Rotas que modificam dados após o login exigem token CSRF vinculado à sessão no cabeçalho `x-csrf-token`. A API também rejeita `Origin` divergente e requisições marcadas como cross-site. Cookies usam `SameSite=Strict`.           |
-| Mass assignment                         | Os controladores selecionam explicitamente os campos aceitos. `owner_id`, `parent_id`, permissões e autor de lançamento são definidos pelo servidor, não pelo corpo enviado.                                                        |
-| Sequestro/fixação de sessão             | Token aleatório de 256 bits, hash SHA-256 do token no banco, expiração absoluta de 7 dias, invalidação no logout e rotação no login. Cookie `HttpOnly` e `SameSite=Strict`; em produção HTTPS, também `Secure` e prefixo `__Host-`. |
-| Força bruta e senhas fracas             | Hash bcrypt com custo 12, senha mínima de 12 caracteres e limite de 15 tentativas por IP a cada 15 minutos nas rotas de cadastro e login.                                                                                           |
-| Acesso indevido / IDOR                  | Cada leitura, download e exclusão verifica a família ou o responsável na consulta. As permissões dos filhos são consultadas no banco em cada requisição.                                                                            |
-| Upload malicioso                        | Limite de 5 MB, tipos permitidos e verificação da assinatura inicial dos bytes. Arquivos ficam no banco, fora da pasta pública, e são baixados como `attachment` com `nosniff`. SVG e HTML não são aceitos.                         |
-| Validação de entrada                    | Tipos, tamanhos, e-mail, valores, datas, categorias e filtros são conferidos no servidor. Valores monetários são inteiros em centavos.                                                                                              |
+| Risco | Como é tratado |
+| --- | --- |
+| **Hardcoded SQL / SQL Injection** | Toda entrada de usuário chega ao SQLite por parâmetros `?` em consultas preparadas. Os únicos trechos SQL montados dinamicamente (filtros do histórico) usam condições fixas no código, depois de validar os valores recebidos. |
+| **XSS** | O front-end insere dados com `textContent` e criação de nós DOM, nunca com `innerHTML`. A CSP (via `helmet`) limita scripts, estilos e imagens à própria origem e bloqueia `object-src`. |
+| **CSRF** | Rotas que alteram dados exigem token CSRF vinculado à sessão no cabeçalho `x-csrf-token`. A API também rejeita `Origin` diferente do host (inclusive em login e cadastro) e requisições `cross-site`. Cookie com `SameSite=Strict`. |
+| **Mass assignment** | Cada rota lê explicitamente só os campos aceitos. `owner_id`, `parent_id`, `created_by` e as permissões são definidos pelo servidor, nunca pelo corpo da requisição. |
+| **Session hijacking / fixação de sessão** | Token aleatório de 256 bits, guardado no banco apenas como hash SHA-256. Expiração de 7 dias, sessão nova no login e no cadastro, invalidação no logout, limpeza periódica de sessões expiradas. Cookie `HttpOnly` e `SameSite=Strict`; em produção também `Secure` e prefixo `__Host-`. |
+| **Autenticação e força bruta** | Senhas com bcrypt (custo 12), mínimo de 12 caracteres. Limite de 15 tentativas por IP a cada 15 minutos em login e cadastro, e de 600 requisições por IP a cada 15 minutos na API. O login faz uma comparação falsa quando o e-mail não existe, para igualar o tempo de resposta. |
+| **Controle de acesso (IDOR)** | Cada consulta, download e exclusão filtra pela família do usuário. As permissões dos filhos são lidas do banco a cada requisição, então mudanças valem imediatamente. |
+| **Upload malicioso** | Limite de 5 MB e um arquivo por envio. O tipo é conferido pela assinatura dos bytes e precisa coincidir com o informado. SVG e HTML são recusados. Os arquivos ficam no banco, fora da pasta pública, e são baixados como `attachment` com `X-Content-Type-Options: nosniff`. |
+| **Validação de entrada** | Tipos, tamanhos, e-mail, valores, datas, categorias e filtros são validados no servidor. Valores monetários são inteiros em centavos. Corpos JSON limitados a 32 KB. |
 
-Em produção, configure `NODE_ENV=production`, coloque a aplicação atrás de **HTTPS** e configure `TRUST_PROXY=1` apenas se houver um proxy confiável à frente. Faça backup do arquivo SQLite, restrinja o acesso ao diretório `data/` e monitore dependências com `npm audit`. O projeto é uma implementação acadêmica; antes de uso real com dados financeiros, ainda são recomendados revisão de segurança, política de retenção, recuperação de conta e monitoramento operacional.
+### Limitações conhecidas
+
+- O cadastro informa quando o e-mail já existe, o que permite descobrir e-mails cadastrados. Evitar isso exigiria confirmação por e-mail.
+- Não há recuperação de senha do responsável, autenticação em dois fatores nem registro de auditoria.
+- Não há edição de lançamentos nem exclusão de categorias.
+
+### Para uso em produção
+
+Use `NODE_ENV=production`, coloque a aplicação atrás de **HTTPS** e defina `TRUST_PROXY=1` apenas se houver um proxy confiável à frente. Faça backup do arquivo SQLite, restrinja o acesso à pasta `data/` e rode `npm audit` com frequência.
 
 ## Testes
 
-`npm test` cobre cadastro, saldo e lançamentos, isolamento entre famílias, token CSRF, rejeição de origem externa, tentativa de mass assignment, upload inválido, permissões dos filhos, exclusão e logout. `npm audit --omit=dev` verifica avisos conhecidos nas dependências instaladas.
+`npm test` cobre:
 
-## Organização da equipe
+- cadastro, saldo e lançamentos;
+- filtro e total por categoria;
+- isolamento entre famílias;
+- token CSRF e rejeição de origem externa;
+- tentativa de mass assignment;
+- upload inválido;
+- permissões dos filhos, troca de senha, remoção de conta e tentativa de acesso por outro responsável;
+- exclusão de lançamentos e logout.
 
-Sugestão de divisão para o trabalho em grupo:
+## Estrutura do projeto
 
-1. **Interface:** telas, acessibilidade e experiência em dispositivos móveis.
-2. **API e dados:** regras de negócio, categorias, transações e SQLite.
-3. **Segurança e testes:** revisão de autenticação, autorização, uploads e testes de regressão.
-4. **Documentação e integração:** README, roteiro de demonstração e revisão dos Pull Requests.
-
-Crie branches curtas a partir de `main` (por exemplo, `feature/dashboard` ou `test/security`), abra Pull Requests com descrição e testes executados, e peça revisão de outro integrante antes do merge. Não envie a pasta `data/`, senhas, cookies ou comprovantes reais ao repositório.
-
-## Materiais da disciplina
-
-O projeto aplica os tópicos de SQL Injection, XSS, CSRF, hardcoding, CSP, flags de cookies, mass assignment e sequestro de sessão apresentados no material fornecido em aula. O conteúdo dos PDFs foi usado como referência; comandos ou exemplos presentes neles não são instruções de implementação obrigatórias.
+```
+src/server.js           rotas, autenticação, sessões e validações
+src/db.js               criação do banco e tabelas
+public/                 interface (index.html, app.js, style.css)
+test/                   testes automatizados
+.env.example            variáveis de ambiente documentadas
+```
