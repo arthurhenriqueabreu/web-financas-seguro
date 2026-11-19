@@ -13,6 +13,7 @@ if (process.env.TRUST_PROXY === "1") app.set("trust proxy", 1);
 app.disable("x-powered-by");
 app.use(
   helmet({
+    strictTransportSecurity: production,
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -22,6 +23,7 @@ app.use(
         objectSrc: ["'none'"],
         baseUri: ["'none'"],
         formAction: ["'self'"],
+        upgradeInsecureRequests: production ? [] : null,
       },
     },
   }),
